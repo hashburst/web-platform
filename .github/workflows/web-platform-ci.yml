@@ -1,0 +1,31 @@
+name: Web platform CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Python dashboard tests
+        run: python3 tests/test_blockchainapi_dashboard.py
+      - name: HVM network status component tests
+        run: node tests/test_hvm_network_status.cjs
+      - name: Repository boundary checks
+        run: |
+          set -eu
+          test -f components/hvm-network-status/card.html
+          test -f components/hvm-network-status/card.js
+          test -f deploy/blockchainapi.one/install-dashboard.py
+          ! grep -R -nE 'BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|HB_ADMIN_SECRET|VALIDATOR_PRIVATE_KEY' components deploy tests
