@@ -1,6 +1,6 @@
 import importlib.util,unittest
 from pathlib import Path
-R=Path(__file__).resolve().parents[2]
+R=Path(__file__).resolve().parents[1]
 COMPONENT=R/'components/hvm-network-status'
 HISTORY=COMPONENT/'history'
 DEPLOY=R/'deploy/blockchainapi.one'
