@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - feature/web-platform-v5.3
+      - fix/frontend-v5.3-ui-runtime
 
 permissions:
   contents: read
@@ -150,7 +151,7 @@ jobs:
           ! grep -Fqi 'Archive (P2P disabled)' "$INDEX"
           ! grep -Fqi 'HVM_NETWORK_CARD_V5_2_EN' "$INDEX"
           ! grep -Fqi 'V5.2' "$INDEX"
-          ! grep -Eqi '(^|[^0-9])1337([^0-9]|$)' "$INDEX"
+          grep -q 'Chain legacy mode 1337' "$INDEX"
 
           grep -q '4735489' "$INDEX"
           grep -q '4735490' "$INDEX"
@@ -159,6 +160,18 @@ jobs:
           grep -q 'wallet_addEthereumChain' "$INDEX"
 
           ! grep -q 'eth_requestAccounts' "$INDEX"
+
+          grep -q "/api/network/storage" "$INDEX"
+          ! grep -q "/api/hashburst/storage" "$INDEX"
+          ! grep -q "Explorer API available" "$INDEX"
+          ! grep -q "R9" "$INDEX"
+          ! grep -q "—" "$INDEX"
+
+          for f in sites/blockchainapi.one/hashburst/*.php; do
+            ! grep -q '<!--' "$f"
+            ! grep -q '/\\*' "$f"
+            ! grep -Eq '^[[:space:]]*//' "$f"
+          done
 
           echo "HVM_WEB_V53_FUNCTIONAL_BOUNDARY_OK"
 
