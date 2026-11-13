@@ -28,7 +28,8 @@ header("X-Content-Type-Options: nosniff");
 body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif}
 header{background:var(--surface);border-bottom:1px solid var(--border);
 padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
-nav a{color:var(--muted);text-decoration:none;margin-left:16px;font-size:13px}\n.brand{font-weight:700}
+nav a{color:var(--muted);text-decoration:none;margin-left:16px;font-size:13px}
+.brand{font-weight:700}
 nav a.active{color:var(--amber);font-weight:600}
 main{max-width:900px;margin:0 auto;padding:24px}
 .warn{background:rgba(217,130,43,.12);border:1px solid rgba(217,130,43,.35);
