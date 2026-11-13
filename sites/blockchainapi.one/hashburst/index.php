@@ -411,8 +411,8 @@ a.hvm-wallet-link:focus-visible{outline:2px solid #bce4ff;outline-offset:3px}
     <div class="section">
       <div class="section-header">
         <div>
-          <div class="section-title">Sovereign Storage - HB-Files / IPFS</div>
-          <div class="section-sub">Client-side encrypted storage across a private IPFS network. Files are encrypted in the browser; nodes hold only ciphertext. Figures are network aggregates - no per-stakeholder data, file identifiers, or client identities are exposed.</div>
+          <div class="section-title">Sovereign Storage</div>
+          <div class="section-sub">Sovereign Storage: HB-Files / IPFS Client-side encrypted storage across a private IPFS network. Files are encrypted in the browser; nodes hold only ciphertext. Figures are network aggregates: no per-stakeholder data, file identifiers, or client identities are exposed.</div>
         </div>
         <span class="section-badge" id="storage-src">-</span>
       </div>
