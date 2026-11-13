@@ -1,0 +1,192 @@
+name: Web Platform V5.3 CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - feature/web-platform-v5.3
+
+permissions:
+  contents: read
+
+jobs:
+  publication-gate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify expected public tree
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          required=(
+            "README.md"
+            "docs/public-api.md"
+            "sites/blockchainapi.one/hashburst/api.php"
+            "sites/blockchainapi.one/hashburst/index.php"
+            "sites/blockchainapi.one/hashburst/mining.php"
+            ".github/workflows/web-platform-v53-ci.yml"
+          )
+
+          for f in "${required[@]}"; do
+            test -f "$f"
+          done
+
+          echo "HVM_WEB_V53_EXPECTED_PUBLIC_TREE_OK"
+
+      - name: Reject forbidden files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          bad="$(
+            find . -type f \
+              ! -path './.git/*' \
+              \( \
+                -name 'verify_api.sh' \
+                -o -name '*.bak' \
+                -o -name '*.bak.*' \
+                -o -iname '*live-private*' \
+                -o -iname '*security-report*' \
+                -o -iname '*security-reports*' \
+              \) -print
+          )"
+
+          if [ -n "$bad" ]; then
+            printf '%s\n' "$bad"
+            exit 1
+          fi
+
+          echo "HVM_WEB_V53_FORBIDDEN_FILES_ZERO_OK"
+
+      - name: Reject private key material
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if grep -RIlE \
+            --exclude-dir=.git \
+            --exclude='*.yml' \
+            --exclude='*.yaml' \
+            -- \
+            'BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY' . \
+            > /tmp/private-key-findings
+          then
+            cat /tmp/private-key-findings
+            exit 1
+          fi
+
+          echo "HVM_WEB_V53_PRIVATE_KEY_MATERIAL_ZERO_OK"
+
+      - name: Reject IPv4 literals
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if grep -RIlE \
+            --exclude-dir=.git \
+            --exclude='*.yml' \
+            --exclude='*.yaml' \
+            -- \
+            '(^|[^0-9])([0-9]{1,3}\.){3}[0-9]{1,3}([^0-9]|$)' \
+            docs sites \
+            > /tmp/ip-findings
+          then
+            cat /tmp/ip-findings
+            exit 1
+          fi
+
+          echo "HVM_WEB_V53_IP_LITERAL_ZERO_OK"
+
+      - name: Reject hard-coded first-party origins
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if grep -RIlE \
+            -- \
+            'https?://(www\.)?(blockchainapi\.one|hashburst\.io)|wss://(www\.)?(blockchainapi\.one|hashburst\.io)' \
+            sites \
+            > /tmp/origin-findings
+          then
+            cat /tmp/origin-findings
+            exit 1
+          fi
+
+          echo "HVM_WEB_V53_FIRST_PARTY_ORIGIN_ZERO_OK"
+
+      - name: Reject operational absolute paths
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if grep -RIlE \
+            -- \
+            '(/root/|/etc/hashburst|/var/lib/hashburst|/opt/actions-runner)' \
+            docs sites \
+            > /tmp/path-findings
+          then
+            cat /tmp/path-findings
+            exit 1
+          fi
+
+          echo "HVM_WEB_V53_OPERATIONAL_PATH_ZERO_OK"
+
+      - name: Verify V5.3 functional boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          INDEX="sites/blockchainapi.one/hashburst/index.php"
+
+          ! grep -Fqi 'legacy-terminal-archive' "$INDEX"
+          ! grep -Fqi 'Legacy API' "$INDEX"
+          ! grep -Fqi 'Legacy archive' "$INDEX"
+          ! grep -Fqi 'Explorer archive' "$INDEX"
+          ! grep -Fqi 'Archive (P2P disabled)' "$INDEX"
+          ! grep -Fqi 'HVM_NETWORK_CARD_V5_2_EN' "$INDEX"
+          ! grep -Fqi 'V5.2' "$INDEX"
+          ! grep -Eqi '(^|[^0-9])1337([^0-9]|$)' "$INDEX"
+
+          grep -q '4735489' "$INDEX"
+          grep -q '4735490' "$INDEX"
+
+          grep -q 'wallet_switchEthereumChain' "$INDEX"
+          grep -q 'wallet_addEthereumChain' "$INDEX"
+
+          ! grep -q 'eth_requestAccounts' "$INDEX"
+
+          echo "HVM_WEB_V53_FUNCTIONAL_BOUNDARY_OK"
+
+      - name: Verify mining credential persistence boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          MINING="sites/blockchainapi.one/hashburst/mining.php"
+
+          grep -q 'sessionStorage' "$MINING"
+
+          if grep -E \
+            'localStorage\.(setItem|set)|localStorage\[[^]]+\][[:space:]]*=' \
+            "$MINING"
+          then
+            exit 1
+          fi
+
+          echo "HVM_WEB_V53_CREDENTIAL_PERSISTENCE_BOUNDARY_OK"
+
+      - name: PHP syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          php -l sites/blockchainapi.one/hashburst/index.php
+          php -l sites/blockchainapi.one/hashburst/mining.php
+          php -l sites/blockchainapi.one/hashburst/api.php
+
+          echo "HVM_WEB_V53_PHP_LINT_3OF3_OK"
