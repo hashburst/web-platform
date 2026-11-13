@@ -1,15 +1,4 @@
 <?php
-// public/hashburst/api.php — HashBurst Public API guide
-//
-// Pagina interamente statica: nessun dato esterno viene renderizzato, quindi
-// non c'e' superficie di injection. La CSP con nonce resta per coerenza con
-// index.php e mining.php e per non dover riesaminare il file se un domani
-// qualcuno ci aggiunge una fetch.
-//
-// ACCURATEZZA: questa pagina descrive cio' che gli endpoint fanno davvero,
-// inclusi i limiti. Ogni endpoint elencato qui deve essere stato verificato
-// con verify_api.sh. Se un endpoint non risponde 200, va tolto da qui prima
-// che qualcuno ci costruisca sopra.
 
 $nonce = base64_encode(random_bytes(16));
 $reviewed = '2026-08-13';
@@ -31,11 +20,11 @@ header("X-Content-Type-Options: nosniff");
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HashBurst — Public API</title>
+<title>HashBurst Public API</title>
 <style nonce="<?= htmlspecialchars($nonce, ENT_QUOTES, 'UTF-8') ?>">
   :root{--bg:#0D1117;--surface:#161B22;--surface2:#1C2128;--border:#30363D;
-  --blue:#2E86C1;--blue-light:#58A6FF;--green:#3FB950;--yellow:#D29922;
-  --red:#F85149;--amber:#D9822B;--text:#E6EDF3;--muted:#8B949E;
+  --blue:#2E86C1;--blue-light:#58A6FF;--green:#3FB950;
+  --red:#F85149;--text:#E6EDF3;--muted:#8B949E;
   --mono:ui-monospace,'Courier New',monospace}
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.6}
@@ -56,18 +45,17 @@ header("X-Content-Type-Options: nosniff");
   code{font-family:var(--mono);font-size:12px;background:var(--surface2);
   padding:1px 5px;border-radius:4px;color:var(--blue-light)}
   .notice{border-radius:10px;padding:14px 18px;font-size:13px;margin-bottom:20px}
-  .notice.warn{background:rgba(217,130,43,.12);border:1px solid rgba(217,130,43,.35);color:#E8B47A}
+  .notice.warn{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
   .notice.info{background:rgba(46,134,193,.10);border:1px solid rgba(46,134,193,.30);color:var(--blue-light)}
   .notice p:last-child{margin-bottom:0}
   .ep{background:var(--surface);border:1px solid var(--border);border-radius:12px;
   padding:18px;margin-bottom:16px}
   .ep-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
-  .method{background:rgba(63,185,80,.15);color:var(--green);font-size:11px;font-weight:700;
-  padding:2px 8px;border-radius:4px;letter-spacing:.5px}
+  .method{background:rgba(46,134,193,.15);color:var(--blue-light);font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.5px}
   .path{font-family:var(--mono);font-size:13px;color:var(--text);word-break:break-all}
   .tag{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
   .tag.public{background:rgba(46,134,193,.15);color:var(--blue-light)}
-  .tag.auth{background:rgba(217,130,43,.15);color:var(--amber)}
+  .tag.auth{background:rgba(46,134,193,.15);color:var(--blue-light)}
   .ep p{font-size:13px;color:var(--muted)}
   .ep p.lead{color:var(--text)}
   pre{background:#0A0D12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;
@@ -83,8 +71,7 @@ header("X-Content-Type-Options: nosniff");
   td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:top}
   td:first-child{font-family:var(--mono);font-size:12px;color:var(--blue-light);white-space:nowrap}
   tr:last-child td{border-bottom:none}
-  .caveat{border-left:2px solid var(--amber);padding:2px 0 2px 14px;margin:12px 0;
-  font-size:13px;color:#E8B47A}
+  .caveat{border-left:2px solid var(--blue);padding:2px 0 2px 14px;margin:12px 0;font-size:13px;color:var(--text)}
   footer{border-top:1px solid var(--border);margin-top:48px;padding:20px 0;
   font-size:12px;color:var(--muted)}
 </style>
@@ -133,7 +120,7 @@ header("X-Content-Type-Options: nosniff");
 
   <h3>Rate limits</h3>
   <p>Enforced by the gateway, per client IP. A <code>503</code> is a rate limit, not an
-  outage — back off and retry.</p>
+  outage - back off and retry.</p>
   <table>
     <tr><th>Scope</th><th>Limit</th><th>Burst</th><th>On excess</th></tr>
     <tr><td>Most endpoints</td><td>30 req/min</td><td>20</td><td><code>503</code></td></tr>
@@ -154,6 +141,18 @@ header("X-Content-Type-Options: nosniff");
   </table>
 
   <h2>Chain endpoints</h2>
+  <div class="ep">
+    <div class="ep-head"><span class="method">GET</span><span class="path">/api/hashburst/hvm/mainnet/network</span><span class="tag public">public</span></div>
+    <p class="lead">Live HVM Mainnet observer state for Chain ID <code>4735489</code>.</p>
+  </div>
+  <div class="ep">
+    <div class="ep-head"><span class="method">GET</span><span class="path">/api/hashburst/hvm/testnet/network</span><span class="tag public">public</span></div>
+    <p class="lead">Live HVM Testnet observer state for Chain ID <code>4735490</code>.</p>
+  </div>
+  <div class="ep">
+    <div class="ep-head"><span class="method">GET</span><span class="path">/api/hashburst/master/status</span><span class="tag public">public</span></div>
+    <p class="lead">Live DePIN master and worker status.</p>
+  </div>
 
   <div class="ep">
     <div class="ep-head">
@@ -161,8 +160,8 @@ header("X-Content-Type-Options: nosniff");
       <span class="path">/api/hashburst/health</span>
       <span class="tag public">public</span>
     </div>
-    <p class="lead">Node liveness and chain position.</p>
-    <p>Fields: <code>blockHeight</code>, <code>chainId</code>, <code>peerID</code>, <code>node</code>.</p>
+    <p class="lead">Legacy chain archive liveness and terminal position. This endpoint is not the HVM Mainnet status source.</p>
+    <p>Fields include <code>blockHeight</code>, <code>chainId</code>, <code>mode</code>, <code>mining_enabled</code>, <code>p2p_enabled</code> and <code>spendable</code>.</p>
     <div class="pre-wrap"><button class="copy">copy</button><pre>curl -s "/api/hashburst/health"</pre></div>
   </div>
 
@@ -225,12 +224,12 @@ header("X-Content-Type-Options: nosniff");
   <div class="ep">
     <div class="ep-head">
       <span class="method">GET</span>
-      <span class="path">/api/hashburst/storage</span>
+      <span class="path">/api/network/storage</span>
       <span class="tag public">public</span>
     </div>
-    <p class="lead">Ledger size on disk.</p>
-    <p>Fields: <code>size_bytes</code>, <code>size_mb</code>.</p>
-    <div class="pre-wrap"><button class="copy">copy</button><pre>curl -s "/api/hashburst/storage"</pre></div>
+    <p class="lead">Sovereign Storage network aggregate.</p>
+    <p>Fields include <code>available</code>, <code>accounting_status</code>, <code>network</code>, <code>nodes</code>, <code>storage_nodes_online</code>, <code>capacity_committable_gb</code>, <code>used_committable_gb</code> and <code>free_sellable_gb</code>.</p>
+    <div class="pre-wrap"><button class="copy">copy</button><pre>curl -s "/api/network/storage"</pre></div>
   </div>
 
   <div class="ep">
@@ -260,7 +259,7 @@ header("X-Content-Type-Options: nosniff");
 
   <h2>Mining endpoints</h2>
   <div class="notice info">
-    <p>These cover mining on <strong>external pools</strong> — proof-of-work on
+    <p>These cover mining on <strong>external pools</strong> - proof-of-work on
     third-party coins, performed by the node operator's hardware. This is not HashBurst
     consensus (PoH) and is unrelated to the chain endpoints above.</p>
   </div>
@@ -304,7 +303,7 @@ header("X-Content-Type-Options: nosniff");
       <span class="tag auth">authenticated</span>
     </div>
     <p class="lead">Returns only the workers owned by the caller.</p>
-    <p>Worker names on the external pools are the stakeholder's own apikey — they are
+    <p>Worker names on the external pools are the stakeholder's own apikey - they are
     stable user identifiers, not anonymous infrastructure labels. This endpoint therefore
     has no global search: an authenticated caller sees their own workers and nothing else.
     The <code>q</code> parameter filters within that set; it cannot widen it.</p>
@@ -373,15 +372,13 @@ pgxsrv01              -> attributed to nobody, returned to nobody</pre>
 
   <footer>
     This page describes the API as verified on <?= htmlspecialchars($reviewed, ENT_QUOTES, 'UTF-8') ?>.
-    If an endpoint behaves differently from what is written here, this page is wrong —
+    If an endpoint behaves differently from what is written here, this page is wrong -
     report it at <a href="https://github.com/hashburst">github.com/hashburst</a>.
   </footer>
 
 </main>
 <script nonce="<?= htmlspecialchars($nonce, ENT_QUOTES, 'UTF-8') ?>">
 'use strict';
-// Copia negli appunti. Legge da textContent del <pre> adiacente: nessun dato
-// esterno, nessuna interpolazione.
 document.querySelectorAll('.copy').forEach(function (btn) {
   btn.addEventListener('click', function () {
     var pre = btn.parentElement.querySelector('pre');

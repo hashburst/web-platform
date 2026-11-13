@@ -1,19 +1,4 @@
 <?php
-// public/hashburst/mining.php
-// Separate page from the network explorer (index.php). Shows external-pool
-// mining infrastructure (PoW on third-party coins), not HashBurst consensus.
-//
-// SICUREZZA:
-//
-// 1. Nessun dato proveniente dalle pool esterne (nomi worker, coin, note) viene
-//    salvato. I nomi worker sono stringhe scelte dall'utente e registrate su 
-//    servizi di terze parti.
-//
-// 2. Content-Security-Policy con nonce per richiesta: anche in caso di
-//    injection, nessuno script inline non autorizzato viene eseguito.
-//
-// La credenziale (signature) NON persistente di default: vedi il blocco
-// "credential handling" nel JS.
 
 $nonce = base64_encode(random_bytes(16));
 
@@ -35,7 +20,7 @@ header("X-Content-Type-Options: nosniff");
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HashBurst — Mining Operations</title>
+<title>HashBurst - Mining Operations</title>
 <style nonce="<?= htmlspecialchars($nonce, ENT_QUOTES, 'UTF-8') ?>">
 :root{--bg:#0D1117;--surface:#161B22;--border:#30363D;--amber:#D9822B;
 --text:#E6EDF3;--muted:#8B949E;--danger:#e85149}
@@ -44,6 +29,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif
 header{background:var(--surface);border-bottom:1px solid var(--border);
 padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
 nav a{color:var(--muted);text-decoration:none;margin-left:16px;font-size:13px}
+.brand{font-weight:700}
 nav a.active{color:var(--amber);font-weight:600}
 main{max-width:900px;margin:0 auto;padding:24px}
 .warn{background:rgba(217,130,43,.12);border:1px solid rgba(217,130,43,.35);
@@ -87,7 +73,7 @@ font-size:12px;border-bottom:1px solid var(--border)}
 </head>
 <body>
 <header>
-  <div style="font-weight:700">HashBurst</div>
+  <div class="brand">HashBurst</div>
   <nav>
     <a href="/hashburst/">Network (P2P/TEP)</a>
     <a href="/hashburst/mining.php" class="active">Mining Operations</a>
@@ -102,7 +88,7 @@ font-size:12px;border-bottom:1px solid var(--border)}
     <p id="apiDisclaimer" class="muted"></p>
   </div>
 
-  <div id="content">Loading…</div>
+  <div id="content">Loading...</div>
 
   <div class="sites" id="sites"></div>
 
@@ -110,7 +96,7 @@ font-size:12px;border-bottom:1px solid var(--border)}
     <h3>Your workers (owner access)</h3>
     <div class="search-hint">
       Enter the apikey and signature assigned to your node/stakeholder record.
-      This returns <strong>only the workers registered under your own apikey</strong> —
+      This returns <strong>only the workers registered under your own apikey</strong> -
       worker names are user identifiers, so no other operator's workers are ever
       returned, with or without a filter.
       <br><br>
@@ -134,10 +120,6 @@ font-size:12px;border-bottom:1px solid var(--border)}
 'use strict';
 
 const $ = (id) => document.getElementById(id);
-
-// --- helper di rendering ------------------------------------------------
-// Unico punto in cui si costruisce DOM. Nessuna interpolazione in innerHTML:
-// nomi worker, coin e note arrivano da API di pool esterne.
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -163,14 +145,10 @@ function fmtHashrate(v) {
   return Number.isFinite(n) ? n.toLocaleString() + ' H/s' : 'n/a';
 }
 
-// --- dashboard aggregata ------------------------------------------------
-
 function poolCard(p) {
   const card = el('div', 'card');
-  card.appendChild(el('div', 'pool-name', p.pool || '—'));
-  addRow(card, 'Coin', p.coin || '—');
-
-  // Zpool non espone hashrate per questo wallet: la metrica disponibile sono le share. 
+  card.appendChild(el('div', 'pool-name', p.pool || 'Not reported'));
+  addRow(card, 'Coin', p.coin || 'Not reported');
   const hasHashrate = p.hashrate_hs !== null && p.hashrate_hs !== undefined;
   const hasShares = p.accepted_shares !== null && p.accepted_shares !== undefined;
 
@@ -210,8 +188,6 @@ async function load() {
   try {
     const r = await fetch('/api/hashburst/mining/summary');
     const d = await r.json();
-
-    // API disclaimer
     $('apiDisclaimer').textContent = d.disclaimer || '';
 
     clear(c);
@@ -233,14 +209,9 @@ async function load() {
 load();
 setInterval(load, 60000);
 
-// --- credential handling --------------------------------------------------------------------------------
-// Signature: credenziale di autenticazione non persistente nel localStorage per evitare esposizione a XSS. 
-// Default: nessuna persistenza. Opt-in esplicito: sessionStorage, si distrugge alla chiusura della tab.
-
 const CRED_KEYS = { apikey: 'hb_ws_apikey', signature: 'hb_ws_signature' };
 
 (function purgeLegacyLocalStorage() {
-  // Rimozione dal browser di apikey e signature in localStorage se salvate usando le precedenti versioni. 
   const hadLegacy = localStorage.getItem(CRED_KEYS.apikey) || localStorage.getItem(CRED_KEYS.signature);
   const legacyApikey = localStorage.getItem(CRED_KEYS.apikey);
   localStorage.removeItem(CRED_KEYS.apikey);
@@ -283,8 +254,6 @@ function clearCreds() {
   $('wsNotice').appendChild(el('div', 'notice', 'Credentials cleared from this browser.'));
 }
 
-// --- ricerca worker -----------------------------------------------------
-
 function workerRow(w) {
   const row = el('div', 'worker-row');
 
@@ -294,7 +263,7 @@ function workerRow(w) {
   left.appendChild(el('span', 'muted', meta));
   row.appendChild(left);
 
-  let right = '—';
+  let right = 'Not reported';
   if (w.hashrate_hs !== null && w.hashrate_hs !== undefined) {
     right = fmtHashrate(w.hashrate_hs);
   } else if (w.accepted_shares !== null && w.accepted_shares !== undefined) {
@@ -312,15 +281,13 @@ async function searchWorkers() {
 
   clear($('wsNotice'));
   clear(results);
-
-  // Senza filtro l'endpoint restituisce tutti e soli i worker del chiamante.
   if (!apiKey || !signature) {
     results.appendChild(el('div', 'search-error', 'apikey and signature are required.'));
     return;
   }
 
   persistCreds(apiKey, signature);
-  results.appendChild(el('div', 'muted', 'Loading…'));
+  results.appendChild(el('div', 'muted', 'Loading...'));
 
   try {
     const url = '/api/hashburst/workers/search' +
@@ -367,8 +334,6 @@ async function searchWorkers() {
     results.appendChild(el('div', 'search-error', 'Request failed: ' + e.message));
   }
 }
-
-// Listener registrati e non con onclick inline: con la CSP attiva gli handler inline non verrebbero eseguiti.
 $('wsSearchBtn').addEventListener('click', searchWorkers);
 $('wsClearBtn').addEventListener('click', clearCreds);
 $('wsQuery').addEventListener('keydown', (e) => { if (e.key === 'Enter') searchWorkers(); });
