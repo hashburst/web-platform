@@ -13,7 +13,7 @@ class PatchTests(unittest.TestCase):
   s=m.patch(self.source());self.assertEqual(s,m.patch(s));self.assertIn('HVM_NETWORK_CARD_V5_2_EN',s);self.assertIn('nonce="preserved"',s)
  def test_exact_v4_upgrade(self):
   s=m.patch(self.source())
-  for name in ('card.html','card.js'):s=s.replace((R/'dashboard'/name).read_text(),(HISTORY/('v4-'+name)).read_text())
+  for name in ('card.html','card.js'):s=s.replace((COMPONENT/name).read_text(),(HISTORY/('v4-'+name)).read_text())
   self.assertIn('HVM_NETWORK_CARD_V5_2_EN',m.patch(s))
  def test_guarded_v3_upgrade(self):
   h='<div class="view" id="view-hvm">HashBurst HVM Testnet 4735490 (0x484202)<span id="hvm-peers"></span>4735489: under maintenance</div>'
