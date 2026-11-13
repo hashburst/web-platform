@@ -1113,13 +1113,16 @@ setInterval(() => {
 const networkSamples = {};
 function networkState(d, chain, now) {
   if (!d || d.ok !== true || d.chain_id !== chain || d.role !== 'observer') return 'unavailable';
-  if (d.reactor_running !== true || Number(d.peer_count) < 1) return 'degraded';
+  const peers = Number(d.connected_peers ?? d.transport?.connected_peers ?? d.peer_count);
+  if (d.reactor_running !== true || peers < 1) return 'degraded';
   const prior = networkSamples[chain];
   networkSamples[chain] = {height:d.finalized_height, at:now};
-  if (prior && now - prior.at <= 90000 && Number.isSafeInteger(d.finalized_height)) {
-    if (d.finalized_height > prior.height) return 'active';
-    if (d.finalized_height < prior.height) return 'degraded';
-  }
+  const capabilitiesReported =
+    typeof d.p2p_enabled === 'boolean' &&
+    typeof d.spending_enabled === 'boolean' &&
+    typeof d.mining_active === 'boolean';
+  if (capabilitiesReported && d.p2p_enabled && d.spending_enabled && d.mining_active && peers > 0) return 'active';
+  if (prior && now - prior.at <= 90000 && Number.isSafeInteger(d.finalized_height) && d.finalized_height < prior.height) return 'degraded';
   return 'online';
 }
 async function serviceAvailability() {
@@ -1149,7 +1152,12 @@ async function serviceAvailability() {
     const r=results[index];
     const status=r.online ? networkState(r.data,chain,Date.now()) : 'unavailable';
     $(id+'-operational').textContent=label+' '+chain+' (mining, P2P and spending) status: '+status+'.';
-    $(id+'-operational').title='Network, P2P and consensus are live. Mining and spendability will be reported explicitly when the HVM API publishes those fields.';
+    const d=r.data || {};
+    const details=[];
+    details.push('P2P: '+(typeof d.p2p_enabled==='boolean'?(d.p2p_enabled?'enabled':'disabled'):'not reported'));
+    details.push('Mining: '+(typeof d.mining_active==='boolean'?(d.mining_active?'active':'inactive'):'not reported'));
+    details.push('Spending: '+(typeof d.spending_enabled==='boolean'?(d.spending_enabled?'enabled':'disabled'):'not reported'));
+    $(id+'-operational').title=details.join(', ');
   }
   let legacyStatus='unavailable';
   if (legacy.online) {
@@ -1243,7 +1251,8 @@ setInterval(() => { if (!document.hidden) serviceAvailability(); }, 30000);
     for(const id of ['live','height','finalized','progress','peers','reactor','activation','rpc']) el(id).textContent=error?words.unavailable:words.unknown;
     if(!sample||error)return;
     el('live').textContent=sample.ok===true&&sample.reactor_running===true?words.active:words.unavailable;
-    el('height').textContent=String(sample.height);el('finalized').textContent=String(sample.finalized_height);el('peers').textContent=String(sample.peer_count);el('progress').textContent=words[progress];
+    el('height').textContent=String(sample.height);el('finalized').textContent=String(sample.finalized_height);el('peers').textContent=String(sample.connected_peers ?? sample.transport?.connected_peers ?? sample.peer_count);el('progress').textContent=words[progress];
+    el('apow').textContent=typeof sample.mining_active==='boolean'?(sample.mining_active?'Active':'Inactive'):(sample.apow_enabled===true?'Enabled, activity not reported':'Not reported');
     el('reactor').textContent=sample.reactor_status_fresh&&sample.reactor?(sample.reactor_running?words.running:words.stopped)+' / '+sample.reactor.height+' / '+sample.reactor.round+' / '+sample.reactor.step:words.stale;
     el('activation').textContent=sample.evm_activation_height?(sample.finalized_height>=sample.evm_activation_height?words.activated:words.pending)+' ('+sample.evm_activation_height+')':words.unknown;
     el('rpc').textContent=rpcOK?(selected==='mainnet'?'Mainnet':'Testnet')+' RPC responding':words.unavailable;
